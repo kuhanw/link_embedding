@@ -24,6 +24,11 @@ filter_formats = ['.pdf', '.png', '.txt', '.svg', '.jpg', '.gz', '.md', '.zip']
 
 filter_blacklist = ['t.co']
 
+n_calls  = 0
+
+graph = {}
+domains = {}
+
 def grabDomainRoot(url):
     base_url = "{0.scheme}://{0.netloc}/".format(urllib.parse.urlsplit(url))
     
@@ -156,11 +161,8 @@ def recursiveDescent(initial_html, current_depth, max_depth):
 
 def main():
 
-	graph = {}
-	domains = {}
-	n_calls  = 0
 	recursiveDescent('http://www.nytimes.com/', 0, 5)
 
-if__name__== "__main__":
-	main()
+if __name__ == "__main__":
+    main()
 
