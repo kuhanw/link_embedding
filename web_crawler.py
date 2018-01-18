@@ -16,9 +16,11 @@ To do: Need to clean up error handling
 
 from lxml import html
 import urllib
+import urllib.request
 import time
 import datetime
 import pickle
+import numpy as np
 
 filter_formats = ['.pdf', '.png', '.txt', '.svg', '.jpg', '.gz', '.md', '.zip']
 
@@ -162,6 +164,8 @@ def recursiveDescent(initial_html, current_depth, max_depth):
 def main():
 
 	recursiveDescent('http://www.nytimes.com/', 0, 5)
+    #initial_html = 'http://www.nytimes.com/'
+    #connection = urllib.request.urlopen(initial_html, timeout=6)
 
 if __name__ == "__main__":
     main()
