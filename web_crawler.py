@@ -51,9 +51,6 @@ def grabLinks(dom, base_url, filter_domains):
     links = [i for i in dom.xpath('//a/@href') if 'http' in i]
     new_links = links
     
-    #This is redunant with the filter for domains
-    #new_links = [i for i in links if base_url not in i]
-    
     #Filter not html pages
     new_links = [i for i in new_links if True not in [extension in i for extension in filter_formats]]
     #Filter black list of web pages
@@ -68,7 +65,7 @@ def recursiveDescent(initial_html, current_depth, max_depth):
     global n_calls
 
     n_calls+=1
-    if n_calls % 100 ==0:
+    if n_calls % 10 ==0:
         print (n_calls)
         pickle.dump(graph, open('graph.pkl', 'wb'))
         pickle.dump(domains, open('domains.pkl', 'wb'))
@@ -77,8 +74,8 @@ def recursiveDescent(initial_html, current_depth, max_depth):
     #In order to get diversity in the crawler we should break based on number of domain pages reached
     #not the max_depth
     #if current_depth>max_depth: 
-        #print ('MAX DEPTH REACHED')
-   #     return None
+    #    print ('MAX DEPTH REACHED')
+    #    return None
 
     base_url = grabDomainRoot(initial_html)
     
@@ -126,14 +123,13 @@ def recursiveDescent(initial_html, current_depth, max_depth):
     except:
         print ('FAILED TO CONNECT')
         return None
+
     print ('GRAB LINKS')
     links = grabLinks(dom, base_url, domains)
     
     if len(links)==0: 
         print ('NO LINKS AFTER FILTERING')
         return None
-    
-   # print ('GOING INTO LOOP', initial_html, links)
     
     for link in links:
         
@@ -149,24 +145,17 @@ def recursiveDescent(initial_html, current_depth, max_depth):
             graph[initial_html] = np.array([link, datetime.datetime.now()])
 
         else:
-            #connections = graph[initial_html].transpose()[0]
-            #if link not in connections:
             graph[initial_html] = np.append(graph[initial_html], [link, datetime.datetime.now()])
-            #else:
-                #print('PATH EXISTS')
-                #return None
-            #graph[initial_html] = graph[initial_html].union(set([link]))   
-
+         
         recursiveDescent(link, current_depth+1, max_depth)
 
         time.sleep(0.1)
 
 def main():
+    
+    initial_html = 'http://www.nytimes.com/'
 
-	recursiveDescent('http://www.nytimes.com/', 0, 5)
-    #initial_html = 'http://www.nytimes.com/'
-    #connection = urllib.request.urlopen(initial_html, timeout=6)
+    recursiveDescent(initial_html, 0, 5)
 
 if __name__ == "__main__":
     main()
-
