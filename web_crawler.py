@@ -24,12 +24,9 @@ import numpy as np
 
 filter_formats = ['.pdf', '.png', '.txt', '.svg', '.jpg', '.gz', '.md', '.zip']
 
-filter_blacklist = ['t.co']
+filter_blacklist = ['t.co', 'mailto:?']
 
 n_calls  = 0
-
-graph = {}
-domains = {}
 
 def grabDomainRoot(url):
     base_url = "{0.scheme}://{0.netloc}/".format(urllib.parse.urlsplit(url))
@@ -61,21 +58,21 @@ def grabLinks(dom, base_url, filter_domains):
     return new_links
 
 
-def recursiveDescent(initial_html, current_depth, max_depth):
+def recursiveDescent(initial_html, current_depth, max_depth, graph, domains):
     global n_calls
-
+    print ('CURRENT DEPTH', current_depth)	
     n_calls+=1
-    if n_calls % 10 ==0:
+    if n_calls % 1000 == 0 and n_calls>0:
         print (n_calls)
-        pickle.dump(graph, open('graph.pkl', 'wb'))
-        pickle.dump(domains, open('domains.pkl', 'wb'))
-
-    #Break condition should go on top of recursive fn
-    #In order to get diversity in the crawler we should break based on number of domain pages reached
-    #not the max_depth
-    #if current_depth>max_depth: 
-    #    print ('MAX DEPTH REACHED')
-    #    return None
+	
+        pickle.dump(graph, open('crawler_results/graph_calls_%d.pkl' % n_calls, 'wb'))
+        #pickle.dump(domains, open('crawler_results/domains_calls_%d.pkl' % n_calls, 'wb'))
+        graph = {}
+        domain = {}
+    #Max retain a max depth to prevent stack overflow
+    if current_depth>max_depth: 
+        print ('MAX DEPTH REACHED')
+        return None
 
     base_url = grabDomainRoot(initial_html)
     
@@ -142,20 +139,27 @@ def recursiveDescent(initial_html, current_depth, max_depth):
         print ('DESCEND', initial_html, link, current_depth, max_depth, n_calls)
     
         if initial_html not in graph.keys():
-            graph[initial_html] = np.array([link, datetime.datetime.now()])
+            graph[initial_html] = np.array([link, base_url, datetime.datetime.now()])
 
         else:
-            graph[initial_html] = np.append(graph[initial_html], [link, datetime.datetime.now()])
-         
-        recursiveDescent(link, current_depth+1, max_depth)
+            graph[initial_html] = np.append(graph[initial_html], [link, base_url, datetime.datetime.now()])
+
+        try: 
+            recursiveDescent(link, current_depth+1, max_depth, graph, domains)
+        except:
+            print ('DESCEND FAILED')
+            return None
 
         time.sleep(0.1)
 
 def main():
     
-    initial_html = 'http://www.nytimes.com/'
+    graph = {}
+    domains = {}
 
-    recursiveDescent(initial_html, 0, 5)
+    initial_html = 'https://www.nytimes.com'
+
+    recursiveDescent(initial_html, 0, 10, graph, domains)
 
 if __name__ == "__main__":
     main()
