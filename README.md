@@ -20,7 +20,7 @@ In this case we would expect the similarity to be defined as how similar two dom
 We define the domain of an url according to Python as: 
 
 `
-def grabDomainRoot(url):
+    base_url = \"{0.scheme}://{0.netloc}/\".format(urllib.parse.urlsplit(url))
     
     if 'http' in base_url:
         try:
