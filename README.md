@@ -15,4 +15,26 @@ We use the idea behind [arXiv:1403.6652 [cs.SI]](https://arxiv.org/abs/1403.6652
 
 We construct a standard vector embedding analogous to word2vec in Tensorflow, the full code is as shown in `graph_embedding.ipynb`. The resultant vectors tell us the similarity between the items. 
 
-In this case we would expect the similarity to be defined as how similar to domains are based on the connections between them. We can construct a full similarity matrix to look at this.
+In this case we would expect the similarity to be defined as how similar two domains are based on the connections between them. We can construct a full similarity matrix to look at this.
+
+We define the domain of an url according to Python as: 
+
+`def grabDomainRoot(url):
+    base_url = "{0.scheme}://{0.netloc}/".format(urllib.parse.urlsplit(url))
+    
+    if 'http' in base_url:
+        try:
+            base_url = [i for i in base_url.split('/') if len(i)>0]
+            base_url = base_url[1]
+        except:
+            return None
+    
+    return base_url`
+    
+
+Source Sequence| Target Sequence Response
+---|--- |
+'what is your name?'|'i don't know'
+'what is your name?'|'i don't know!'
+'what is your name?'|'i don't know sir'
+'what is your name?'|'oh my god!'
