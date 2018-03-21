@@ -54,3 +54,11 @@ It is clear the vector embedding can group together similar domains by their con
 
 There is a propensity to group together obvious connections such as various local variations of a website (as in the case of IGN.) This may be rectified by reconstructing the domain graph in a more nuauced way by merging variations of a domain into a single node through more sophisticated syntax processing.
 
+## To do list
+
+  - Clean up documentation on web crawler script.
+  - Perform visualization on embedding
+  - Merge variations of a single domain into one node
+  - Crawl for more connections
+
+
