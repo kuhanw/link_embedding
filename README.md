@@ -37,7 +37,11 @@ In this case we would expect the similarity to be defined as how similar two dom
 
 In the table below, I output a few examples showing the embedding can reasonably capture the local similarity amongst nodes.
 
-Source Node| Node 1| Score 1|Node 2 | Score 2|Node 3|  
----|--- |---|--- |---|--- |
-'what is your name?'|'i don't know'|'i don't know'|'i don't know'|'i don't know'|'i don't know'
+Source Node| Node 1| Score 1|Node 2 | Score 2|Node 3| Score 3| 
+---|--- |---|--- |---|--- |---|
+'marketplace.usatoday.com'|'developer.usatoday.com'|0.15|'arcade.usatoday.com'|0.23|'travel.usatoday'|0.35
+'world.ign.com'|'world.ziffdavis.com'|0.25|'api.ign.com'|0.67|'africa.ign.com'|0.74
+'www.cnbcstore.com'|'www.usanetworkstore.com'|0.39|'www.msnbcstore.com'|0.48|'www.shopbybravo.com'|0.48
+
+It is clear the vector embedding can group together similar domains by their connections. One flaw in this method is propensity to group together obvious connections such as various local variations of a website (as in the case of IGN.) This may be rectified by reconstructing the domain graph in a more nuauced way by merging variations of a domain into a single node through more sophisticated syntax processing.
 
