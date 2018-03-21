@@ -1,4 +1,4 @@
-# link_embedding
+# link_embedding [Work in progress]
 Embedding link connections from a webcrawler
 
 This is a work in process. What happens if we try to create vector embeddings based on a graph where nodes are websites and edges are links?
