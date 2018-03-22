@@ -8,26 +8,19 @@ This is a work in process. What happens if we try to create vector embeddings ba
 First we will use a webcrawler to map out a tiny portion of the internet as data. We construct a directed graph from the link connections. 
 
 ## Graph Construction
-To reduce the size of the graph, I construct the graph of domains as opposed to urls. I define the domain of an url according to Python as: 
+To reduce the size of the graph, I construct the graph of domains as opposed to urls. I define the domain of an url according to tldextract as: 
 
 ```
-def grabDomainRoot(url):
-    base_url = \"{0.scheme}://{0.netloc}/\".format(urllib.parse.urlsplit(url))`    
-    if 'http' in base_url:
-        try:
-            base_url = [i for i in base_url.split('/') if len(i)>0]
-            base_url = base_url[1]
-        except:
-            return None
-    
-    return base_url,
+import tldextract
+output = tldextract.extract(url-string)
+domain = output.domain    
 ```
-thus it is possible to capture one website as two "domains", (i.e. corporate.website.com and press.website.com).
+thus it is possible to merge together various section of a url into a single domain (i.e. corporate.website.com and investor.website.com).
 
-In the resultant graph nodes represents domains and edges connections between domains, as opposed to direct urls. A visualization of this can be seen below. [Replace with directed graph]
+In the resultant graph nodes represents domains and edges connections between domains, as opposed to direct urls. This dramatically reduces the number of nodes I have to represent. A visualization of the directed graph can be seen below. 
 
 <p align="center">
-<img src="./domain_graph_undirected.png">
+<img src="./root_graph_directed_domain_only.png">
 </p>
 
 ## Vector Embedding
@@ -46,19 +39,15 @@ In the table below, I output a few examples showing the embedding can reasonably
 
 Source Node| Node 1| Score 1|Node 2 | Score 2|Node 3| Score 3| 
 ---|--- |---|--- |---|--- |---|
-'marketplace.usatoday.com'|'developer.usatoday.com'|0.15|'arcade.usatoday.com'|0.23|'travel.usatoday'|0.35
-'world.ign.com'|'world.ziffdavis.com'|0.25|'api.ign.com'|0.67|'africa.ign.com'|0.74
-'www.cnbcstore.com'|'www.usanetworkstore.com'|0.39|'www.msnbcstore.com'|0.48|'www.shopbybravo.com'|0.48
+'facebook'|'twitter'|0.23|'linkedin'|0.66|'instagram'|0.72
+'usanetworkstore'|'cnbcstore'|0.38|'nbcstore'|0.41|'msnbcstore'|0.48
+'sciencechannel'|'tlc'|0.41|'velocity'|0.48|'destinationamerica'|0.49
 
 It is clear the vector embedding can group together similar domains by their connections. The score represents the angle between their embedded vectors.
-
-There is a propensity to group together obvious connections such as various local variations of a website (as in the case of IGN.) This may be rectified by reconstructing the domain graph in a more nuauced way by merging variations of a domain into a single node through more sophisticated syntax processing.
 
 ## To do list
 
   - Clean up documentation on web crawler script.
   - Perform visualization on embedding
-  - Merge variations of a single domain into one node
+  - <s>Merge variations of a single domain into one node</s>
   - Crawl for more connections
-
-
