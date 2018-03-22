@@ -1,4 +1,4 @@
-# link_embedding [Work in progress]
+# link_embedding
 
 ## Introduction
 Embedding link connections from a webcrawler
