@@ -27,7 +27,7 @@ thus it is possible to capture one website as two "domains", (i.e. corporate.web
 In the resultant graph nodes represents domains and edges connections between domains, as opposed to direct urls. A visualization of this can be seen below. [Replace with directed graph]
 
 <p align="center">
-<img src="./domain_graph_undirected.png">
+<img src="./root_graph_directed_domain_only.png">
 </p>
 
 ## Vector Embedding
