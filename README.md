@@ -58,7 +58,7 @@ There is a propensity to group together obvious connections such as various loca
 
   - Clean up documentation on web crawler script.
   - Perform visualization on embedding
-  - Merge variations of a single domain into one node
+  - <s>Merge variations of a single domain into one node</s>
   - Crawl for more connections
 
 
