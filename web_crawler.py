@@ -21,6 +21,7 @@ import time
 import datetime
 import pickle
 import numpy as np
+import pandas as pd
 
 filter_formats = ['.pdf', '.png', '.txt', '.svg', '.jpg', '.gz', '.md', '.zip']
 
@@ -62,13 +63,14 @@ def recursiveDescent(initial_html, current_depth, max_depth, graph, domains):
     global n_calls
     print ('CURRENT DEPTH', current_depth)	
     n_calls+=1
-    if n_calls % 5000 == 0 and n_calls>0:
+    if n_calls % 5 == 0 and n_calls>0:
         print (n_calls)
-	#Why is this not deleting the prior iteration, it appears to be appending to graph?
-        pickle.dump(graph, open('crawler_results/graph_calls_%d_bkfs.pkl' % n_calls, 'wb'))
-        #pickle.dump(domains, open('crawler_results/domains_calls_%d.pkl' % n_calls, 'wb'))
+     	#Why is this not deleting the prior iteration, it appears to be appending to graph?
+        pickle.dump(graph, open('crawler_results/graph_calls_%d_%s.pkl' % (n_calls, initial_html), 'wb'))
         graph = {}
         domain = {}
+	#Testing a trigger	
+        return None
     #Max retain a max depth to prevent stack overflow
     if current_depth>max_depth: #this is a tunable parameter
         print ('MAX DEPTH REACHED')
@@ -154,12 +156,14 @@ def recursiveDescent(initial_html, current_depth, max_depth, graph, domains):
 
 def main():
     
+    max_depth = 2
     graph = {}
     domains = {}
-
-    initial_html = 'http://www.bkfs.com/'
-
-    recursiveDescent(initial_html, 0, 900, graph, domains)
+    df = pd.read_csv('sp500_links.csv')
+    for link in df['link'].values:
+        initial_html = link
+	
+        recursiveDescent(initial_html, 0, max_depth, graph, domains)
 
 if __name__ == "__main__":
     main()
