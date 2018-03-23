@@ -65,12 +65,12 @@ def recursiveDescent(initial_html, current_depth, max_depth, graph, domains):
     if n_calls % 5000 == 0 and n_calls>0:
         print (n_calls)
 	#Why is this not deleting the prior iteration, it appears to be appending to graph?
-        pickle.dump(graph, open('crawler_results/graph_calls_%d_stack_test.pkl' % n_calls, 'wb'))
+        pickle.dump(graph, open('crawler_results/graph_calls_%d_bkfs.pkl' % n_calls, 'wb'))
         #pickle.dump(domains, open('crawler_results/domains_calls_%d.pkl' % n_calls, 'wb'))
         graph = {}
         domain = {}
     #Max retain a max depth to prevent stack overflow
-    if current_depth>max_depth: 
+    if current_depth>max_depth: #this is a tunable parameter
         print ('MAX DEPTH REACHED')
         return None
 
@@ -83,7 +83,7 @@ def recursiveDescent(initial_html, current_depth, max_depth, graph, domains):
     if base_url in domains.keys(): 
         print ('BASE URL IN DOMAIN KEYS')
  
-        if domains[base_url]>=10:
+        if domains[base_url]>=20:#this a tunable parameter
             print ('BASE URL EXCEEDED')
             return None
         
@@ -157,7 +157,7 @@ def main():
     graph = {}
     domains = {}
 
-    initial_html = 'https://www.nytimes.com'
+    initial_html = 'http://www.bkfs.com/'
 
     recursiveDescent(initial_html, 0, 900, graph, domains)
 
