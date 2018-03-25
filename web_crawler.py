@@ -46,7 +46,7 @@ def grabDomainRoot(url):
 
 #Need to explore with the least amount of filters because otherwise the crawler may get stuck in closed loops easily
 #Can prune during graph construction instead by applying domain filters
-def grabLinks(dom, base_url, filter_domains):
+def grabLinks(dom, filter_domains):
     
     links = [i for i in dom.xpath('//a/@href') if 'http' in i]
     new_links = links
@@ -59,49 +59,22 @@ def grabLinks(dom, base_url, filter_domains):
     return new_links
 
 
-def recursiveDescent(initial_html, current_depth, max_depth, max_domains, graph, domains, n_calls):
-    #global n_calls
-    print ('CURRENT DEPTH', current_depth)	
-   
-    #if n_calls % 2 == 0 and n_calls>0:
-    if n_calls>5:
-        print ('MAX CALLS REACHED')
+def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_graph_size, domains, max_domains):
+    
+    if len(graph)%10==0 and len(graph)>0:
+
         print ('SAVING, n_calls %d' % n_calls)
      	#Why is this not deleting the prior iteration, it appears to be appending to graph?
-        domain_entity = tldextract.extract(initial_html)
+        domain_entity = tldextract.extract(root)
         domain_entity = domain_entity.domain
-        pickle.dump(graph, open('crawler_results/graph_calls_%d_%s.pkl' % (n_calls, domain_entity), 'wb'))
-
-	#Testing a trigger	
-        return graph, domains
+        pickle.dump(graph, open('crawler_results/graph_size_%d_%s.pkl' % (len(graph), domain_entity), 'wb'))
 
     #Max retain a max depth to prevent stack overflow
-    if current_depth>=max_depth: #this is a tunable parameter
-        print ('MAX DEPTH REACHED')
+    if len(graph)>max_graph_size: #this is a tunable parameter
+        print ('MAX GRAPH SIZE REACHED')
         return graph, domains
 
-    base_url = grabDomainRoot(initial_html)
-    
-    if base_url is None: 
-        print ('NO BASE URL')
-        return graph, domains
-   
-    if base_url in domains.keys(): 
-        print ('BASE URL IN DOMAIN KEYS')
- 
-        if domains[base_url]>=max_domains:#this a tunable parameter
-            print ('BASE URL EXCEEDED')
-            return graph, domains
-        
-        else:
-            print ('BASE URL INCREASED')
-            domains[base_url]+=1
-    
-    else: 
-        domains[base_url]=1
-    
-    
-    print ('CONNECTING TO: ', initial_html)
+    print ('CONNECT TO URL')
     try:
         connection = urllib.request.urlopen(initial_html, timeout=6)
     except:
@@ -115,30 +88,36 @@ def recursiveDescent(initial_html, current_depth, max_depth, max_domains, graph,
         print ('FAILED TO READ CONNECTION')
         return graph, domains
 
-    print ('PARSE HTML FROM SRING')
+    print ('PARSE HTML FROM STRING')
     try:
         dom =  html.fromstring(read_connect)
     except:
         print ('FAILED TO PARSE FROM STRING')
         return graph, domains
 
-
-    print ('GRAB LINKS')
-    links = grabLinks(dom, base_url, domains)
-    
-    if len(links)==0: 
-        print ('NO LINKS AFTER FILTERING')
-        return graph, domains
+    links = grabLinks(dom, domains)
     
     for link in links:
+
+        base_url = grabDomainRoot(link)
+    
+        if base_url is None: 
+            print ('NO BASE URL PASSING')
+            continue
+        
+        print ('from:%s, to:%s, base_url:%s, depth:%d, max_depth:%d, graph_size:%d' %\
+               (initial_html, link, base_url, current_depth, max_depth, len(graph)))
         
         if initial_html in graph.keys():
             connections = graph[initial_html].transpose()[0]
             if link in connections:
                 print ('PATH EXISTS, PASSING')
                 continue
-        
-        print ('DESCEND', initial_html, link, current_depth, max_depth, max_domains, n_calls)
+
+        if base_url in domains.keys(): 
+            pass
+        else: 
+            domains[base_url]=1
     
         if initial_html not in graph.keys():
             graph[initial_html] = np.array([link, base_url, datetime.datetime.now()])
@@ -146,25 +125,42 @@ def recursiveDescent(initial_html, current_depth, max_depth, max_domains, graph,
         else:
             graph[initial_html] = np.append(graph[initial_html], [link, base_url, datetime.datetime.now()])
 
-        return recursiveDescent(link, current_depth+1, max_depth, max_domains, graph, domains, n_calls+1)
+        if current_depth+1>max_depth:
+            print ('MAX DEPTH EXCEEDED, PASSING')
+
+        elif domains[base_url]>=max_domains:#this a tunable parameter
+            print ('BASE URL EXCEEDED, PASSING')
+            continue   
+     
+        else:
+            print ('DESCEND')
+            domains[base_url]+=1
+            recursiveDescent(root, link, current_depth+1, max_depth, graph, max_graph_size, domains, max_domains)
 
         time.sleep(0.1)
 
+    return graph, domains
+
 def main():
     
-    max_depth = 5
-    max_domains = 3  
+    max_depth = 2
+    max_domains = 2
+    max_graph_size = 100
+
     df = pd.read_csv('sp500_links.csv')
 
     for idx_link, link in enumerate(df['link'].values):
         if idx_link!=0:break
         graph = {}
         domains = {}
-        initial_html = link
+        initial_html = 'http://www.nytimes.com'#link
         print ('CURRENTLY PROCESSING ##:%s' % initial_html)
-        n_calls = 0
-        paths_list = recursiveDescent(initial_html, 0, max_depth, max_domains, graph, domains, n_calls)
-        print (paths_list)
+        
+        paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
+        
+        domain_entity = tldextract.extract(link)
+        domain_entity = domain_entity.domain
+        pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
 
 if __name__ == "__main__":
     main()
