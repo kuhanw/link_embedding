@@ -61,7 +61,7 @@ def grabLinks(dom, filter_domains):
 
 def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_graph_size, domains, max_domains):
     
-    if len(graph)%10==0 and len(graph)>0:
+    if len(graph)%30==0 and len(graph)>0:
 
         print ('SAVING, n_calls %d' % n_calls)
      	#Why is this not deleting the prior iteration, it appears to be appending to graph?
@@ -143,24 +143,26 @@ def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_gr
 
 def main():
     
-    max_depth = 2
+    max_depth = 10
     max_domains = 2
-    max_graph_size = 100
+    max_graph_size = 200
 
     df = pd.read_csv('sp500_links.csv')
-
+    df = df[10:]
     for idx_link, link in enumerate(df['link'].values):
-        if idx_link!=0:break
+        #if idx_link!=0:break
         graph = {}
         domains = {}
-        initial_html = 'http://www.nytimes.com'#link
+        initial_html = link
         print ('CURRENTLY PROCESSING ##:%s' % initial_html)
+        try:
+            paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
         
-        paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
-        
-        domain_entity = tldextract.extract(link)
-        domain_entity = domain_entity.domain
-        pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
-
+            domain_entity = tldextract.extract(link)
+            domain_entity = domain_entity.domain
+            pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
+        except:
+            print ('FAILED TO PROCESS ##:%s' % initial_html)
+  
 if __name__ == "__main__":
     main()
