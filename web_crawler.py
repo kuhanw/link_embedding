@@ -15,6 +15,8 @@ To do: Need to clean up error handling
 '''
 
 from lxml import html
+from joblib import Parallel, delayed
+
 import urllib
 import urllib.request
 import time
@@ -39,7 +41,7 @@ def grabDomainRoot(url):
             base_url = [i for i in base_url.split('/') if len(i)>0]
             base_url = base_url[1]
         except:
-            print ('NO BASE URL')
+            #print ('NO BASE URL')
             return None
     
     return base_url
@@ -61,9 +63,9 @@ def grabLinks(dom, filter_domains):
 
 def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_graph_size, domains, max_domains):
     
-    if len(graph)%30==0 and len(graph)>0:
+    if len(graph)%20==0 and len(graph)>0:
 
-        print ('SAVING, n_calls %d' % n_calls)
+        #print ('SAVING, n_calls %d' % n_calls)
      	#Why is this not deleting the prior iteration, it appears to be appending to graph?
         domain_entity = tldextract.extract(root)
         domain_entity = domain_entity.domain
@@ -71,28 +73,28 @@ def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_gr
 
     #Max retain a max depth to prevent stack overflow
     if len(graph)>max_graph_size: #this is a tunable parameter
-        print ('MAX GRAPH SIZE REACHED')
+        #print ('MAX GRAPH SIZE REACHED')
         return graph, domains
 
-    print ('CONNECT TO URL')
+    #print ('CONNECT TO URL')
     try:
         connection = urllib.request.urlopen(initial_html, timeout=6)
     except:
-        print ('TIME OUT')
+        #print ('TIME OUT')
         return graph, domains
             
-    print ('HTML TO STRING')
+    #print ('HTML TO STRING')
     try:
         read_connect = connection.read()
     except:
-        print ('FAILED TO READ CONNECTION')
+        #print ('FAILED TO READ CONNECTION')
         return graph, domains
 
-    print ('PARSE HTML FROM STRING')
+    #print ('PARSE HTML FROM STRING')
     try:
         dom =  html.fromstring(read_connect)
     except:
-        print ('FAILED TO PARSE FROM STRING')
+        #print ('FAILED TO PARSE FROM STRING')
         return graph, domains
 
     links = grabLinks(dom, domains)
@@ -102,16 +104,16 @@ def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_gr
         base_url = grabDomainRoot(link)
     
         if base_url is None: 
-            print ('NO BASE URL PASSING')
+            #print ('NO BASE URL PASSING')
             continue
         
-        print ('from:%s, to:%s, base_url:%s, depth:%d, max_depth:%d, graph_size:%d' %\
-               (initial_html, link, base_url, current_depth, max_depth, len(graph)))
+        #print ('from:%s, to:%s, base_url:%s, depth:%d, max_depth:%d, graph_size:%d' %\
+        #       (initial_html, link, base_url, current_depth, max_depth, len(graph)))
         
         if initial_html in graph.keys():
             connections = graph[initial_html].transpose()[0]
             if link in connections:
-                print ('PATH EXISTS, PASSING')
+                #print ('PATH EXISTS, PASSING')
                 continue
 
         if base_url in domains.keys(): 
@@ -126,14 +128,15 @@ def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_gr
             graph[initial_html] = np.append(graph[initial_html], [link, base_url, datetime.datetime.now()])
 
         if current_depth+1>max_depth:
-            print ('MAX DEPTH EXCEEDED, PASSING')
+            #print ('MAX DEPTH EXCEEDED, PASSING')
+            continue
 
         elif domains[base_url]>=max_domains:#this a tunable parameter
-            print ('BASE URL EXCEEDED, PASSING')
+            #print ('BASE URL EXCEEDED, PASSING')
             continue   
      
         else:
-            print ('DESCEND')
+            #print ('DESCEND')
             domains[base_url]+=1
             recursiveDescent(root, link, current_depth+1, max_depth, graph, max_graph_size, domains, max_domains)
 
@@ -141,28 +144,47 @@ def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_gr
 
     return graph, domains
 
+def crawlLink(initial_html, max_depth, max_graph_size, max_domains):
+
+    graph = {}
+    domains = {}
+
+    print ('CURRENTLY PROCESSING ##:%s' % initial_html)
+ #   try:
+    paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
+        
+    domain_entity = tldextract.extract(initial_html)
+    domain_entity = domain_entity.domain
+    pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
+#    except:
+#        print ('FAILED TO PROCESS ##:%s' % initial_html)
+  
 def main():
     
     max_depth = 10
     max_domains = 2
-    max_graph_size = 200
+    max_graph_size = 20
 
     df = pd.read_csv('sp500_links.csv')
-    df = df[10:]
-    for idx_link, link in enumerate(df['link'].values):
+    df = df[120:124]
+    
+    results = Parallel(n_jobs=4, verbose=8)(delayed(crawlLink)(link, max_depth, max_graph_size, max_domains) for link in df['link'].values)
+
+
+    #for idx_link, link in enumerate(df['link'].values):
         #if idx_link!=0:break
-        graph = {}
-        domains = {}
-        initial_html = link
-        print ('CURRENTLY PROCESSING ##:%s' % initial_html)
-        try:
-            paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
+        #graph = {}
+        #domains = {}
+        #initial_html = link
+        #print ('CURRENTLY PROCESSING ##:%s' % initial_html)
+        #try:
+        #    paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
         
-            domain_entity = tldextract.extract(link)
-            domain_entity = domain_entity.domain
-            pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
-        except:
-            print ('FAILED TO PROCESS ##:%s' % initial_html)
+        #    domain_entity = tldextract.extract(link)
+        #    domain_entity = domain_entity.domain
+        #    pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
+        #except:
+        #    print ('FAILED TO PROCESS ##:%s' % initial_html)
   
 if __name__ == "__main__":
     main()
