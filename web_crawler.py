@@ -63,7 +63,7 @@ def grabLinks(dom, filter_domains):
 
 def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_graph_size, domains, max_domains):
     
-    if len(graph)%20==0 and len(graph)>0:
+    if len(graph)%1100==0 and len(graph)>0:
 
         #print ('SAVING, n_calls %d' % n_calls)
      	#Why is this not deleting the prior iteration, it appears to be appending to graph?
@@ -161,14 +161,14 @@ def crawlLink(initial_html, max_depth, max_graph_size, max_domains):
   
 def main():
     
-    max_depth = 10
+    max_depth = 100
     max_domains = 2
-    max_graph_size = 20
+    max_graph_size = 2000
 
     df = pd.read_csv('sp500_links.csv')
-    df = df[120:124]
+    df = df[97:]
     
-    results = Parallel(n_jobs=4, verbose=8)(delayed(crawlLink)(link, max_depth, max_graph_size, max_domains) for link in df['link'].values)
+    results = Parallel(n_jobs=8, verbose=8)(delayed(crawlLink)(link, max_depth, max_graph_size, max_domains) for link in df['link'].values)
 
 
     #for idx_link, link in enumerate(df['link'].values):
