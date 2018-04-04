@@ -58,9 +58,10 @@ def main():
     num_skips = 2 #The number of context examples per label to create x-y data out of 
 #i.e. the number of rows of "data" per window, label combo
     window_size = max_step//2 #where max step must be even
-    embedding_size = 64  #Dimension of the embedding vector.
-    #vocabulary_size = 27623#len(web_graph.nodes())
-    vocabulary_size = len(nodes_only)
+    embedding_size = 32  #Dimension of the embedding vector.
+    vocabulary_size = len(web_graph.nodes())
+    #vocabulary_size = len(nodes_only) this won't work because the prediction will have to come from values outside
+#    of the vocab range
 
     num_sampled = 64 #Number of negative examples to sample. 
     #As this number goes to the total number of samples it reproduces softmax, 
@@ -117,16 +118,12 @@ def main():
         session.run(tf.global_variables_initializer())
         print('Initialized')
         saver = tf.train.Saver()
-        #saver.restore(session, 'chkpt/saved_directed_domain_only_weighted_sp500')
+        #saver.restore(session, 'chkpt/saved_directed_domain_only_weighted_sp500_v8')
 
         average_loss = 0
-        for data in data_list:
+        for idx_data, data in enumerate(data_list):
             #Shuffle the list of nodes at the start of each epoch
             random_walks = pickle.load(open('walk_data/' + data, 'rb'))
-            
-            #for epoch in range(len(data)//vocabulary_size):
-                
-            #random_walks = data[epoch*vocabulary_size:(epoch+1)*vocabulary_size]
             
             random.shuffle(random_walks)
             
@@ -156,14 +153,14 @@ def main():
                 
                 average_loss += loss_val
              
-                if step % 100 == 0: 
+                if step % 200 == 0 and step>0: 
                     
                     avg_loss_record.append(float(average_loss)/step)
                     print('num_steps:%d, Average loss:%.7g' % (step, float(average_loss)/step))
                 
-                if (step % 1000 == 0): 
+                if step % 5000 == 0 and step>0: 
 
-                    saver.save(session, 'chkpt/saved_directed_domain_only_weighted_sp500_v8_step_%d' % (data*step)+step)
+                    saver.save(session, 'chkpt/saved_directed_domain_only_weighted_sp500_new_v8_step_%d' % int((idx_data*step)+step))
 
                     print ('Session saved')
                     
@@ -171,7 +168,8 @@ def main():
 
         final_embeddings = normalized_embeddings.eval()
         print ('embeddings created')
-    
+        pickle.dump(final_embeddings, open('final_embeddings_v8.pkl', 'wb'))\
+        
 if __name__ == "__main__":
     main()
 

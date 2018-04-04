@@ -21,6 +21,7 @@ import urllib
 import urllib.request
 import time
 import tldextract
+import os.path
 
 import datetime
 import pickle
@@ -76,25 +77,25 @@ def recursiveDescent(root, initial_html, current_depth, max_depth, graph, max_gr
         #print ('MAX GRAPH SIZE REACHED')
         return graph, domains
 
-    #print ('CONNECT TO URL')
+    print ('CONNECT TO URL')
     try:
         connection = urllib.request.urlopen(initial_html, timeout=6)
     except:
-        #print ('TIME OUT')
+        print ('TIME OUT')
         return graph, domains
             
-    #print ('HTML TO STRING')
+    print ('HTML TO STRING')
     try:
         read_connect = connection.read()
     except:
-        #print ('FAILED TO READ CONNECTION')
+        print ('FAILED TO READ CONNECTION')
         return graph, domains
 
-    #print ('PARSE HTML FROM STRING')
+    print ('PARSE HTML FROM STRING')
     try:
         dom =  html.fromstring(read_connect)
     except:
-        #print ('FAILED TO PARSE FROM STRING')
+        print ('FAILED TO PARSE FROM STRING')
         return graph, domains
 
     links = grabLinks(dom, domains)
@@ -150,41 +151,51 @@ def crawlLink(initial_html, max_depth, max_graph_size, max_domains):
     domains = {}
 
     print ('CURRENTLY PROCESSING ##:%s' % initial_html)
- #   try:
-    paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
-        
+
     domain_entity = tldextract.extract(initial_html)
     domain_entity = domain_entity.domain
-    pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
-#    except:
-#        print ('FAILED TO PROCESS ##:%s' % initial_html)
+
+    #try:
+    file_path = 'crawler_results/graph_calls_final_%s.pkl' % domain_entity
+    
+    if os.path.isfile(file_path) is False:
+
+        paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
+        
+        pickle.dump(graph, open(file_path, 'wb'))
+    #except:
+    #    print ('FAILED TO PROCESS ##:%s' % initial_html)
   
 def main():
     
     max_depth = 100
     max_domains = 2
     max_graph_size = 2000
-
+	
     df = pd.read_csv('sp500_links.csv')
-    df = df[97:]
+    df = df
     
-    results = Parallel(n_jobs=8, verbose=8)(delayed(crawlLink)(link, max_depth, max_graph_size, max_domains) for link in df['link'].values)
+    #results = Parallel(n_jobs=8, verbose=8)(delayed(crawlLink)(link, max_depth, max_graph_size, max_domains) for link in df['link'].values)
 
 
-    #for idx_link, link in enumerate(df['link'].values):
+    for idx_link, link in enumerate(df['link'].values):
         #if idx_link!=0:break
-        #graph = {}
-        #domains = {}
-        #initial_html = link
-        #print ('CURRENTLY PROCESSING ##:%s' % initial_html)
-        #try:
-        #    paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
+        graph = {}
+        domains = {}
+        initial_html = link
+        domain_entity = tldextract.extract(link)
+        domain_entity = domain_entity.domain
+        #if domain_entity!='bestbuy': continue  
+
+        file_path = 'crawler_results/graph_calls_final_%s.pkl' % domain_entity
+
+        if os.path.isfile(file_path) is False:
+            print ('CURRENTLY PROCESSING ##:%s' % initial_html)
+            paths_list = recursiveDescent(initial_html, initial_html, 0, max_depth, graph, max_graph_size, domains, max_domains)
         
-        #    domain_entity = tldextract.extract(link)
-        #    domain_entity = domain_entity.domain
-        #    pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
+            pickle.dump(graph, open('crawler_results/graph_calls_final_%s.pkl' % (domain_entity), 'wb'))
         #except:
-        #    print ('FAILED TO PROCESS ##:%s' % initial_html)
+         #   print ('FAILED TO PROCESS ##:%s' % initial_html)
   
 if __name__ == "__main__":
     main()

@@ -36,10 +36,14 @@ def randomWalk(initial_node, step, max_step, path):
             path.append(None)
         
         midpoint = len(path)//2
-        
-        while path[midpoint] is None:
-            path = np.roll(path, shift=1)
-        
+        if path[midpoint] is None:
+            while path[midpoint] is None:
+                path = np.roll(path, shift=1)
+ 
+            #Give a 50% chance to switch target and context around
+            #if random.choice([0, 1]) == 1:
+            #    path = np.roll(path, shift=1)
+ 
         return path
     
     node_paths = web_graph[initial_node]
@@ -59,7 +63,6 @@ def randomWalk(initial_node, step, max_step, path):
 def main():
 
     max_step = 4# Window size and max_step must be connected
-    #vocabulary_size = 27623#len(web_graph.nodes())
     vocabulary_size = len(nodes_only)
     n_epochs = 100 #This controls the number of walks from each node
     print ('start walks')
