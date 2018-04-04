@@ -43,7 +43,11 @@ def fillGraph(web_graph, graph_file, edge_entries, nodes_only, domain_graph=True
 
             if domain_node is None or domain_key is None: 
                 continue
-
+            
+            if len(domain_node)==0 or len(domain_key)==0:
+                #print ('domain:%s, node:%s, key:%s' % (domain_node, str(node), str(key)))
+                continue
+                
             if True in [i in domain_node for i in black_list] or True in [i in domain_key for i in black_list]:
                 continue
 

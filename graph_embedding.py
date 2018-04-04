@@ -3,43 +3,10 @@ import pickle
 import math
 import random
 
-import pandas as pd
-import networkx as nx
 import numpy as np
 import tensorflow as tf
 
-from joblib import Parallel, delayed
 from graph_helpers import *
-
-'''
-randomWalk(graph, initial_node, step, max_step, path)
-
-Function to take a random walk from a given node
-
-graph: networkx graph, graph from which to random through
-initial node: string, initial node to begin the walk
-step: int, current step of walk
-max_step: int, maximum number of steps to take in walk
-path:, list, current path taken in the walk
-'''
-def randomWalk(graph, initial_node, step, max_step, path):
- 
-    if step>= max_step: 
-        return path
-    
-    adjacent_nodes = [i for i in graph[initial_node]]
-    
-    if len(adjacent_nodes) == 0:
-            path.append(None)
-            return path
-
-    adjacent_nodes_weights = [graph[initial_node][i]['weight'] for i in graph[initial_node]]
-            
-    next_node = np.random.choice(adjacent_nodes, p=adjacent_nodes_weights)
-    
-    path.append(next_node)
-    
-    return randomWalk(graph, next_node, step+1, max_step, path)
 
 '''
 generateBatch(batch_size, num_context_per_label, context_window, target, step)
@@ -70,11 +37,13 @@ def generateBatch(batch_size, num_context_per_label, context_window, target, ste
     for window_idx in range(passes_through_batch):
         
         current_window = list(context_window[window_idx + passes_through_batch*step])
+        current_window = [i for i in current_window if i!=-1]
         current_target = target[window_idx + passes_through_batch*step]
-        context_samples = -1
-        while context_samples == -1:
-            
-            context_samples = random.sample(current_window, num_context_per_label)
+        context_samples = []
+        #while context_samples == -1:
+        while len(context_samples)<num_context_per_label:
+            context_samples.append(random.choice(current_window))    
+#        context_samples = random.sample(current_window, num_context_per_label)
         
         data_samples =  [[context_sample, [current_target]] for context_sample in context_samples]
 
@@ -83,48 +52,13 @@ def generateBatch(batch_size, num_context_per_label, context_window, target, ste
             
     return batch
 
-def randomWalk(graph, initial_node, step, max_step, path):
- 
-    if step>= max_step: 
-        return path
-    
-    adjacent_nodes = [i for i in graph[initial_node]]
-    #Weights here are normalized with respect to global max as opposed to local max!
-    #Therefore have to reweight
-
-    if len(adjacent_nodes) == 0:
-        path.append(None)
-        return path
-    
-    node_paths = graph[initial_node]
-    adjacent_nodes_weights = [node_paths[i]['weight'] for i in node_paths]
-    sum_weights = sum(adjacent_nodes_weights)
-    adjacent_nodes_weights = [i/sum_weights for i in adjacent_nodes_weights]
-       
-    next_node = np.random.choice(adjacent_nodes, p=adjacent_nodes_weights)
-    
-    path.append(next_node)
-    
-    return randomWalk(graph, next_node, step+1, max_step, path)
-
-def walkGraph(node, step, max_step, current_path):
-    
-    path = randomWalk(node, 0, max_step, current_path)
-
-    path = [domain_map[i] for i in path]
-    
-    while len(path)-1!=max_step:
-        path.append(-1)
-        
-    return path
-
 def main():
 
-    max_step = 2# Window size and max_step must be connected
-    num_skips = 1 #The number of context examples per label to create x-y data out of 
+    max_step = 4# Window size and max_step must be connected
+    num_skips = 2 #The number of context examples per label to create x-y data out of 
 #i.e. the number of rows of "data" per window, label combo
     window_size = max_step//2 #where max step must be even
-    embedding_size = 32  #Dimension of the embedding vector.
+    embedding_size = 64  #Dimension of the embedding vector.
     #vocabulary_size = 27623#len(web_graph.nodes())
     vocabulary_size = len(nodes_only)
 
@@ -132,11 +66,9 @@ def main():
     #As this number goes to the total number of samples it reproduces softmax, 
     #this not quite correct as we still doing binary classification, except now we give every negative example to test against,
     #as opposed to true multi-class classification
-    batch_size = 64 #must be a multiple of num_skips
-    num_steps = len(nodes_only)//batch_size
-    n_epochs = 50000 #This controls the number of walks from each node
+    batch_size = 256 #must be a multiple of num_skips
 
-    print ('%d nodes, %d steps per epoch' % (vocabulary_size, num_steps))
+    print ('%d nodes' % vocabulary_size)
 
     tf.reset_default_graph()
     graph = tf.Graph()
@@ -174,11 +106,11 @@ def main():
         norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
         normalized_embeddings = embeddings / norm
 
-
     avg_loss_record = []
     list_batch_labels = []
     list_batch_inputs = []
     print ('Begin session')
+    data_list = ['random_walk_epoch_data_%d.pkl' % i for i in range(7)]
     
     with tf.Session(graph=graph) as session:
 
@@ -188,26 +120,18 @@ def main():
         #saver.restore(session, 'chkpt/saved_directed_domain_only_weighted_sp500')
 
         average_loss = 0
-
-        for epoch in range(n_epochs):
+        for data in data_list:
             #Shuffle the list of nodes at the start of each epoch
-            random.shuffle(list_of_nodes)
-            random_walks = []
-            print ('Begin walks in epoch:%d' % epoch)
-            for node in nodes_only:
-                #Step through each node and conduct a random walk about it of length max_step
-                path = randomWalk(web_graph, node, 0, max_step, [node])
+            random_walks = pickle.load(open('walk_data/' + data, 'rb'))
+            
+            #for epoch in range(len(data)//vocabulary_size):
                 
-                path = [domain_map[i] for i in path]
-                while len(path)!=max_step:
-                    path.append(None)
-                    
-                random_walks.append(path)
+            #random_walks = data[epoch*vocabulary_size:(epoch+1)*vocabulary_size]
+            
+            random.shuffle(random_walks)
+            
+            data_windows = np.vectorize(domain_map.get)(random_walks)
 
-            print ('Walks completed')
-
-            data_windows = np.array(random_walks)
-                    
             target = data_windows[:,window_size]
 
             left_window = data_windows[:,:window_size]
@@ -215,8 +139,10 @@ def main():
             right_window = data_windows[:,window_size+1:]
 
             context_window = np.concatenate([left_window, right_window], axis=1)
-                
-            for step in range(num_steps):
+            
+            num_steps = len(random_walks)//batch_size
+            print ('num steps in data %d' % num_steps)
+            for step in range(num_steps-1):
 
                 batch_data = generateBatch(batch_size, num_skips, context_window, target, step)
                 batch_inputs = [row[0] for row in batch_data]
@@ -230,21 +156,21 @@ def main():
                 
                 average_loss += loss_val
              
-            if epoch%500==0: 
+                if step % 100 == 0: 
+                    
+                    avg_loss_record.append(float(average_loss)/step)
+                    print('num_steps:%d, Average loss:%.7g' % (step, float(average_loss)/step))
                 
-                avg_loss_record.append(float(average_loss)/num_steps)
-                print('epoch:%d, Average loss:%.7g' % (epoch, float(average_loss)/num_steps))
-            
-            if (epoch % 10000 == 0): 
+                if (step % 1000 == 0): 
 
-                saver.save(session, 'chkpt/saved_directed_domain_only_weighted_sp500_v8')
+                    saver.save(session, 'chkpt/saved_directed_domain_only_weighted_sp500_v8_step_%d' % (data*step)+step)
 
-                print ('Session saved')
-                
+                    print ('Session saved')
+                    
             average_loss = 0
 
-    final_embeddings = normalized_embeddings.eval()
-    print ('embeddings created')
+        final_embeddings = normalized_embeddings.eval()
+        print ('embeddings created')
     
 if __name__ == "__main__":
     main()
