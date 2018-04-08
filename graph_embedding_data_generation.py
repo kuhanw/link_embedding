@@ -6,6 +6,7 @@ import random
 import networkx as nx
 import numpy as np
 import tensorflow as tf
+import pandas as pd
 
 from joblib import Parallel, delayed
 from graph_helpers import *
@@ -39,11 +40,11 @@ def randomWalk(initial_node, step, max_step, path):
         if path[midpoint] is None:
             while path[midpoint] is None:
                 path = np.roll(path, shift=1)
- 
+                
             #Give a 50% chance to switch target and context around
             #if random.choice([0, 1]) == 1:
             #    path = np.roll(path, shift=1)
- 
+        path = list(path)
         return path
     
     node_paths = web_graph[initial_node]
@@ -62,16 +63,24 @@ def randomWalk(initial_node, step, max_step, path):
 
 def main():
 
-    max_step = 4# Window size and max_step must be connected
-    vocabulary_size = len(nodes_only)
+    max_step = 2# Window size and max_step must be connected
     n_epochs = 100 #This controls the number of walks from each node
     print ('start walks')
     
-    for data in range(100):
+    for data in range(10):
         print ('data stack:%d' % data)
-        random_walks = Parallel(n_jobs=-1, verbose=8, backend='multiprocessing')(delayed(randomWalk)(node, 0, max_step, [node]) for node in nodes_only for epoch in range(n_epochs))
-   
-        pickle.dump(random_walks, open('walk_data/random_walk_epoch_data_%d.pkl' % data, 'wb'))
+        random_walks = Parallel(n_jobs=6, verbose=8, backend='multiprocessing')(delayed(randomWalk)(node, 0, max_step, [node]) for node in nodes_only for epoch in range(n_epochs))
+        
+        data_windows = np.vectorize(domain_map.get)(random_walks)
+        
+        df = pd.DataFrame(data_windows)
+        
+        mid_point = max_step//2
+        print (mid_point)
+        print ('None targets:%d' % df[df[mid_point]!=-1].shape[0])
+        df = df[df[mid_point]!=-1]
+        df.to_csv('walk_data/random_walk_epoch_data_%d_step_2.csv' % data, index=False, encoding='utf-8')
+
         print('Walk saved')
          
 if __name__ == "__main__":

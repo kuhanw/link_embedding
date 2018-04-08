@@ -40,7 +40,7 @@ def generateBatch(batch_size, num_context_per_label, context_window, target, ste
         current_window = [i for i in current_window if i!=-1]
         current_target = target[window_idx + passes_through_batch*step]
         context_samples = []
-        #while context_samples == -1:
+        #while context_samples == -1:1
         while len(context_samples)<num_context_per_label:
             context_samples.append(random.choice(current_window))    
 #        context_samples = random.sample(current_window, num_context_per_label)
@@ -112,13 +112,14 @@ def main():
     list_batch_inputs = []
     print ('Begin session')
     data_list = ['random_walk_epoch_data_%d.pkl' % i for i in range(7)]
-    
+    data_list = data_list
+    random.shuffle(data_list)
     with tf.Session(graph=graph) as session:
 
         session.run(tf.global_variables_initializer())
         print('Initialized')
         saver = tf.train.Saver()
-        #saver.restore(session, 'chkpt/saved_directed_domain_only_weighted_sp500_v8')
+        saver.restore(session, 'chkpt/saved_directed_domain_only_weighted_sp500_new_v8_step_280000')
 
         average_loss = 0
         for idx_data, data in enumerate(data_list):
@@ -153,19 +154,22 @@ def main():
                 
                 average_loss += loss_val
              
-                if step % 200 == 0 and step>0: 
+                if step % 1000 == 0 and step>0: 
                     
                     avg_loss_record.append(float(average_loss)/step)
                     print('num_steps:%d, Average loss:%.7g' % (step, float(average_loss)/step))
                 
-                if step % 5000 == 0 and step>0: 
+                if step % 10000 == 0 and step>0: 
 
                     saver.save(session, 'chkpt/saved_directed_domain_only_weighted_sp500_new_v8_step_%d' % int((idx_data*step)+step))
 
                     print ('Session saved')
                     
             average_loss = 0
+        
+        saver.save(session, 'chkpt/saved_directed_domain_only_weighted_sp500_new_v8_step_final')
 
+        print ('Session saved')
         final_embeddings = normalized_embeddings.eval()
         print ('embeddings created')
         pickle.dump(final_embeddings, open('final_embeddings_v8.pkl', 'wb'))\
