@@ -80,6 +80,9 @@ def main():
         #if idx>5: break
         if 'final' not in file: 
             continue
+        if 'depth_3' not in file:
+            continue
+
         print ('Adding %s to graph' % file)
         graph_file = pickle.load(open('./crawler_results/' + file, 'rb'))
 
@@ -103,8 +106,7 @@ def main():
     
         neighbors = [i for i in web_graph.neighbors(node)]
         for neighbor in neighbors:
-            next_neighbors = [i for i in web_graph.neighbors(neighbor)]    
-    
+            next_neighbors = [i for i in web_graph.neighbors(neighbor)] 
         try:
             next_neighbor_counts = [len(i) for i in next_neighbors]
         except:
@@ -121,9 +123,22 @@ def main():
     print('%d nodes, %d key_domain dict, %d key_nodes only' % (len(list_of_nodes), len(domain_inv_map), len(nodes_only)))
 
     print ('Dump pickles')
-    pickle.dump(web_graph, open('graph_directed_weighted_v8.pkl', 'wb'))
 
-    pickle.dump(nodes_only, open('nodes_only_directed_v8.pkl', 'wb'))
+    notes='depth_3'
+
+    pickle.dump(web_graph, open('graph_directed_weighted_v8_%s.pkl' % notes, 'wb'))
+
+    pickle.dump(nodes_only, open('nodes_only_directed_v8_%s.pkl' % notes, 'wb'))
+
+    list_of_nodes = [i for i in web_graph.nodes()]
+
+    domain_inv_map = {idx:i for idx, i in enumerate(list_of_nodes)}
+    domain_map = {domain_inv_map[key]:key for key in domain_inv_map.keys()}
+    domain_map[None] = -1
+    pickle.dump(domain_inv_map, open('graph_domain_inv_map_%s_v8.pkl' % notes, 'wb'))
+    pickle.dump(domain_map, open('graph_domain_map_%s_v8.pkl' % notes, 'wb'))
+
+    nx.write_edgelist(web_graph, 'graph_edgelist_%s_v8.txt' % notes, delimiter='|')    
 
 if __name__ == "__main__":
     main()
